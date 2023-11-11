@@ -1,0 +1,2 @@
+# HotSpots
+fire
