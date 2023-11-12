@@ -3,7 +3,7 @@ const app = express();
 const { parseString } = require('xml2js');
 
 const locationsRoute=require('./routes/getLocations');
-
+const propertiesRoute = require('./routes/properties');
 
 app.get("/api", (req, res) => {
   res.json({
@@ -19,6 +19,7 @@ app.get("/", (req, res) => {
 
 app.use('/get-locations',locationsRoute);
 
+app.use('/get-properties', propertiesRoute);
 
 function xmlToJson(xmlString) {
   let result = null;
