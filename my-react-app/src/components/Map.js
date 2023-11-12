@@ -133,7 +133,7 @@ const Map = (params) => {
         `${apiUrl}/${newSuggestionsData[i].latitude}/${newSuggestionsData[i].longitude}/5`
       );
       const newData = await response.json();
-      console.log(newData);
+      console.log("new" + newData);
       polygons.push({
         contour: formatData(newData),
         properties: {},
@@ -182,22 +182,24 @@ const Map = (params) => {
         continue;
       }
       console.log(locations[i]);
-      //if (locations[i].address)
+      //random number generator
+      let num = Math.random();
+      if (locations[i].address)
         newCardInfos.push({
           title: "Prospective location " + i,
           address: "Address: " + locations[i].address,
-          neighborhood: "Our ranking: " + 10,
+          neighborhood: "Our ranking: " + (num * 10).toFixed(2),
           description: "Price: " + locations[i].price,
           score: "Score " + locations[i].score,
           coordinates: [locations[i].longitude, locations[i].latitude],
         });
       //if (locations[i].address)
-        locationsData.push({
-          name: "Location" + i,
-          address: "Address" + i,
-          exits: "Exits" + i,
-          coordinates: [locations[i].longitude, locations[i].latitude],
-        });
+      locationsData.push({
+        name: "Location" + i,
+        address: "Address" + i,
+        exits: "Exits" + i,
+        coordinates: [locations[i].longitude, locations[i].latitude],
+      });
     }
     console.log(JSON.stringify(locationsData));
     const ICON_MAPPING = {
