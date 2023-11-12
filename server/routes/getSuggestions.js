@@ -21,6 +21,7 @@ function parsePolygonString(polygonString) {
 
 function calculateNetAreaFromFile(filePath) {
     return new Promise((resolve, reject) => {
+        
         fs.readFile(filePath, 'utf8', (err, data) => {
             if (err) {
                 reject('Error reading file: ' + err);
@@ -28,7 +29,8 @@ function calculateNetAreaFromFile(filePath) {
             }
 
             try {
-                const polygons = JSON.parse(data.trim()); // Parse the JSON string
+                //onst polygons = JSON.parse(data.trim()); // Parse the JSON string
+                
                 let union;
 
                 polygons.forEach(polygonString => {
@@ -182,8 +184,83 @@ function getScore(lat, lng){
     return coverageWeight*changeInArea + parkingWeight*totalParking;
 }
 
+function initializeComposite(filePath) {
+    return new Promise((resolve, reject) => {
+        var polygons;
+        console.log("asdf")
+        fs.readFile(filePath, 'utf8', (err, data) => {
+            if (err) {
+                console.log("errrr")
+                reject(err);
+                return;
+            }
+            console.log("parsing");
+            try {
+                const regex = /\["(.*?)"\]/g;
+                polygons = [];
+                let match;
+
+                while ((match = regex.exec(data)) !== null) {
+                    polygons.push(match[1]);
+                    console.log("hi: " + match[1]);
+                }
+                
+                resolve(polygons);
+            } catch (parseError) {
+                console.log("ars")
+                reject(parseError);
+            }
+        });
+
+        // fs.readFile(filePath, 'utf8', (err, data) => {
+        //     if (err) {
+        //         reject('Error reading file: ' + err);
+        //         return;
+        //     }
+
+            try {
+                // Ensure data is in the correct format for JSON parsing
+                //polygons = JSON.parse(data.trim());
+                let union;
+
+                polygons.forEach(polygonString => {
+                    const polygon = {
+                        type: "Feature",
+                        geometry: parsePolygonString(polygonString)
+                    };
+
+                    if (!union) {
+                        union = polygon;
+                    } else {
+                        union = turf.union(union, polygon);
+                    }
+                });
+
+                if (union) {
+                    const totalArea = geojsonArea.geometry(union.geometry);
+                    
+                    // Writing to initcomposite.txt
+                    const unionVertices = union.geometry.coordinates;
+                    const content = `Vertices: ${JSON.stringify(unionVertices)}\nArea: ${totalArea}`;
+                    fs.writeFile('initcomposite.txt', content, 'utf8', writeErr => {
+                        if (writeErr) {
+                            reject('Error writing to file: ' + writeErr);
+                        } else {
+                            resolve(totalArea);
+                        }
+                    });
+                } else {
+                    reject('No polygons to calculate area');
+                }
+            } catch (Error) {
+                reject('Error parsing asdfJSON: ' + Error);
+            }
+        // });
+    });
+}
 router.get("/", async (req, res) => {
-    
+    const filePath = "./initpoly.txt";
+    initializeComposite(filePath);
     // const filePath = './initpoly.txt'; // Adjust the path as needed
 
     // try {
