@@ -8,7 +8,6 @@ const suggestionsRoute=require('./routes/getSuggestions');
 
 const propertiesRoute = require('./routes/properties');
 
-
 app.get("/api", (req, res) => {
   res.json({
     key1: "Hi",
@@ -27,7 +26,6 @@ app.use('/get-suggestions',suggestionsRoute);
 
 
 app.use('/get-properties', propertiesRoute);
-
 
 function xmlToJson(xmlString) {
   let result = null;
@@ -75,8 +73,10 @@ app.get('/generate-polygon/:lat/:lon/:range', async (req, res) => {
 
     const xmlData = await response.text();
     const jsonData = xmlToJson(xmlData);
+    // console.log(jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList);
 
-    res.json(jsonData);
+    res.json(jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList);
+
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
