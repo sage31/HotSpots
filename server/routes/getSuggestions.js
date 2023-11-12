@@ -161,6 +161,7 @@ function getOnStreetSpotsCount(lat, lon, radius) {
 }
 
 function getScore(lat, lng){
+    return 50;
     //read in union polygon from initcomposite.txt
     polygon = 
 
@@ -234,7 +235,7 @@ function initializeComposite(filePath) {
 }
 
 async function getAvailableRealEstate(latTL, lngTL,latBR, lngBR) {
-    const url = `http://localhost:8000/get-properties?latTL=${latTL}&lngTL=${lngTL}&latBR=${latBR}&lngBR=${lngBR}`;
+    const url = `http://localhost:8000/get-properties/${latTL}/${lngTL}/${latBR}/${lngBR}`;
     // Replace the above URL with your actual endpoint and query parameters
 
     try {
@@ -253,22 +254,31 @@ async function getAvailableRealEstate(latTL, lngTL,latBR, lngBR) {
 }
 
 
-router.get("//:latTL/:lngTL/:latBR/:lngBR", async (req, res) => {
+router.get("/:latTL/:lngTL/:latBR/:lngBR", async (req, res) => {
     const filePath = "./initpoly.txt";
-    //initializeComposite(filePath);
-    realestate = await getAvailableRealEstate(latTL, lngTL, latBR, lngBR);
-    console.log(realestate);
+    console.log("hereee");
 
-    // const filePath = './initpoly.txt'; // Adjust the path as needed
+    // Assuming getAvailableRealEstate returns an array of coordinates
+    const realestate = await getAvailableRealEstate(req.params.latTL, req.params.lngTL, req.params.latBR, req.params.lngBR);
 
-    // try {
-    //     const totalArea = await calculateNetAreaFromFile(filePath);
+    // Initialize an array to store the top three coordinates
+    const topThreeCoordinates = [];
 
-    //     res.json({ success: true, totalArea: totalArea });
-    // } catch (error) {
-    //     console.error(error);
-    //     res.status(500).json({ success: false, error: error });
-    // }
+    for (const coord of realestate) {
+        const score = getScore(coord.latitude, coord.longitude);
+        // Store the coordinates with the three highest scores
+        // Adjust the comparison logic as needed
+        if (topThreeCoordinates.length < 3 || score > topThreeCoordinates[2].score) {
+            topThreeCoordinates.push({ latitude: coord.latitude, longitude: coord.longitude, score });
+            // Sort the array based on scores in descending order
+            topThreeCoordinates.sort((a, b) => b.score - a.score);
+            // Keep only the top three coordinates
+            topThreeCoordinates.splice(3);
+        }
+    }
+
+    // Send the top three coordinates as the response
+    res.json({ success: true, topThreeCoordinates });
 });
 
 module.exports = router;
