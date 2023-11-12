@@ -29,8 +29,8 @@ router.get("/:latTL/:lngTL/:latBR/:lngBR", async (req, res) => {
     const format = 'JSON';
     const midLat = (latTL + latBR) / 2;
     const midLng = (lngTL + lngBR) / 2;
-    const query = 'geoLocation:[' + midLng + ',' + midLat + ',' + 0.5 + ',km] AND propertyType:"Retail" AND mostRecentStatus="For Sale"';
-    const num_records = 5;
+    const query = 'geoLocation:[' + midLng + ',' + midLat + ',' + 10 + ',km] AND propertyType:"Retail" AND mostRecentStatus="For Sale"';
+    const num_records = 50;
     const download = false;
 
 
