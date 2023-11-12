@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express();
 const { parseString } = require('xml2js');
+const fs = require('fs');
+
 
 
 const locationsRoute=require('./routes/getLocations');
@@ -37,6 +39,28 @@ function xmlToJson(xmlString) {
   });
   return result;
 }
+
+function clearInitPolyFile() { // Usage clearInitPolyFile();
+  const filePath = './initpoly.txt'; // Adjust the path as needed
+
+  fs.writeFile(filePath, '', (err) => {
+      if (err) {
+          console.error('Error clearing file:', err);
+      } else {
+          console.log('File cleared successfully');
+      }
+  });
+}
+
+app.get('/init-poly-reset', async (req, res) => {
+  try {
+      const message = await clearInitPolyFile();
+      res.json({ success: true, message: message });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ success: false, error: error });
+  }
+});
 
 app.get('/generate-polygon/:lat/:lon/:range/:existing', async (req, res) => {
   try {
@@ -78,11 +102,11 @@ app.get('/generate-polygon/:lat/:lon/:range/:existing', async (req, res) => {
 
     // console.log(jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList);
     if(existing == "yes"){
-      const filePath = 'server/initpoly.txt'; // Specify the path to your text file
+      const filePath = './initpoly.txt'; // Specify the path to your text file
         fs.appendFile(filePath, JSON.stringify(newPolygon) + '\n', (err) => {
             if (err) {
                 console.error('Error writing to file:', err);
-                return res.status(500).json({ error: 'Internal Server Error' });
+                return res.status(500).json({ error: 'Error writin to file' });
             }
         });
     }
