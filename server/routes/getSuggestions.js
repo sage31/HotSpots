@@ -20,6 +20,10 @@ function calculateNetArea(geoJsonPolygons) {
 
 
 
+async function getScore(){
+
+}
+
 router.get("/", async (req, res) => {
 
     
