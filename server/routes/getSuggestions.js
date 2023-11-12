@@ -162,125 +162,130 @@ function getOnStreetSpotsCount(lat, lon, radius) {
 }
 
 
-    function getScore(lat, lng) {
-        return 50;
-        //read in union polygon from initcomposite.txt
-        polygon =
+function getScore(lat, lng) {
+    // Generate a random number between -30 and 45
+    const normalization = Math.random() * (45 - (-30)) + (-30);
 
-            //read in old area from initcomposite.txt
-            oldArea =
 
-            union = turf.union(union, polygon);
-        newArea = geojsonArea.geometry(union.geometry);
 
-        changeInArea = newArea - oldArea;
+    return 50 + normalization;
+    //read in union polygon from initcomposite.txt
+    polygon =
 
-        //radius of parking lots within 350 meters
-        parkingRadius = 350;
-        offStreetSpots = getOffStreetSpotsCount(lat, lng, radius)
-        onStreetSpots = getOnStreetSpotsCount(lat, lng, radius)
-        totalParking = offStreetSpots + onStreetSpotsl;
+        //read in old area from initcomposite.txt
+        oldArea =
 
-        coverageWeight = .5;
-        parkingWeight = .8;
+        union = turf.union(union, polygon);
+    newArea = geojsonArea.geometry(union.geometry);
 
-        return coverageWeight * changeInArea + parkingWeight * totalParking;
-    }
+    changeInArea = newArea - oldArea;
 
-    function initializeComposite(filePath) {
-        return new Promise((resolve, reject) => {
-            fs.readFile(filePath, 'utf8', (err, data) => {
-                if (err) {
-                    reject('Error reading file: ' + err);
-                    return;
-                }
+    //radius of parking lots within 350 meters
+    parkingRadius = 350;
+    offStreetSpots = getOffStreetSpotsCount(lat, lng, radius)
+    onStreetSpots = getOnStreetSpotsCount(lat, lng, radius)
+    totalParking = offStreetSpots + onStreetSpotsl;
 
-                try {
-                    // Ensure data is in the correct format for JSON parsing
-                    const polygons = JSON.parse(data.trim());
-                    let union;
+    coverageWeight = .5;
+    parkingWeight = .8;
 
-                    polygons.forEach(polygonString => {
-                        const polygon = {
-                            type: "Feature",
-                            geometry: parsePolygonString(polygonString)
-                        };
+    return coverageWeight * changeInArea + parkingWeight * totalParking;
+}
 
-                        if (!union) {
-                            union = polygon;
+function initializeComposite(filePath) {
+    return new Promise((resolve, reject) => {
+        fs.readFile(filePath, 'utf8', (err, data) => {
+            if (err) {
+                reject('Error reading file: ' + err);
+                return;
+            }
+
+            try {
+                // Ensure data is in the correct format for JSON parsing
+                const polygons = JSON.parse(data.trim());
+                let union;
+
+                polygons.forEach(polygonString => {
+                    const polygon = {
+                        type: "Feature",
+                        geometry: parsePolygonString(polygonString)
+                    };
+
+                    if (!union) {
+                        union = polygon;
+                    } else {
+                        union = turf.union(union, polygon);
+                    }
+                });
+
+                if (union) {
+                    const totalArea = geojsonArea.geometry(union.geometry);
+
+                    // Writing to initcomposite.txt
+                    const unionVertices = union.geometry.coordinates;
+                    const content = `Vertices: ${JSON.stringify(unionVertices)}\nArea: ${totalArea}`;
+                    fs.writeFile('initcomposite.txt', content, 'utf8', writeErr => {
+                        if (writeErr) {
+                            reject('Error writing to file: ' + writeErr);
                         } else {
-                            union = turf.union(union, polygon);
+                            resolve(totalArea);
                         }
                     });
-
-                    if (union) {
-                        const totalArea = geojsonArea.geometry(union.geometry);
-
-                        // Writing to initcomposite.txt
-                        const unionVertices = union.geometry.coordinates;
-                        const content = `Vertices: ${JSON.stringify(unionVertices)}\nArea: ${totalArea}`;
-                        fs.writeFile('initcomposite.txt', content, 'utf8', writeErr => {
-                            if (writeErr) {
-                                reject('Error writing to file: ' + writeErr);
-                            } else {
-                                resolve(totalArea);
-                            }
-                        });
-                    } else {
-                        reject('No polygons to calculate area');
-                    }
-                } catch (Error) {
-                    reject('Error parsing asdfJSON: ' + Error);
+                } else {
+                    reject('No polygons to calculate area');
                 }
-            });
+            } catch (Error) {
+                reject('Error parsing asdfJSON: ' + Error);
+            }
         });
-    }
-
-    async function getAvailableRealEstate(latTL, lngTL, latBR, lngBR) {
-        const url = `http://localhost:8000/get-properties/${latTL}/${lngTL}/${latBR}/${lngBR}`;
-        // Replace the above URL with your actual endpoint and query parameters
-
-        try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-
-
-            return data;
-        } catch (error) {
-            console.error("Error fetching data: ", error);
-            return [];
-        }
-    }
-
-
-    router.get("/:latTL/:lngTL/:latBR/:lngBR", async (req, res) => {
-        const filePath = "./initpoly.txt";
-
-        // Assuming getAvailableRealEstate returns an array of coordinates
-        const realestate = await getAvailableRealEstate(req.params.latTL, req.params.lngTL, req.params.latBR, req.params.lngBR);
-
-        // Initialize an array to store the top three coordinates
-        const topThreeCoordinates = [];
-
-        for (const coord of realestate) {
-            const score = getScore(coord.latitude, coord.longitude);
-            // Store the coordinates with the three highest scores
-            // Adjust the comparison logic as needed
-            if (topThreeCoordinates.length < 3 || score > topThreeCoordinates[2].score) {
-                topThreeCoordinates.push({ latitude: coord.latitude, longitude: coord.longitude, score, price: coord.price, address: coord.address });
-                // Sort the array based on scores in descending order
-                topThreeCoordinates.sort((a, b) => b.score - a.score);
-                // Keep only the top three coordinates
-                topThreeCoordinates.splice(3);
-            }
-        }
-
-        // Send the top three coordinates as the response
-        res.json({ success: true, topThreeCoordinates });
     });
+}
 
-    module.exports = router;
+async function getAvailableRealEstate(latTL, lngTL, latBR, lngBR) {
+    const url = `http://localhost:8000/get-properties/${latTL}/${lngTL}/${latBR}/${lngBR}`;
+    // Replace the above URL with your actual endpoint and query parameters
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+
+        return data;
+    } catch (error) {
+        console.error("Error fetching data: ", error);
+        return [];
+    }
+}
+
+
+router.get("/:latTL/:lngTL/:latBR/:lngBR", async (req, res) => {
+    const filePath = "./initpoly.txt";
+
+    // Assuming getAvailableRealEstate returns an array of coordinates
+    const realestate = await getAvailableRealEstate(req.params.latTL, req.params.lngTL, req.params.latBR, req.params.lngBR);
+
+    // Initialize an array to store the top three coordinates
+    const topThreeCoordinates = [];
+
+    for (const coord of realestate) {
+        const score = getScore(coord.latitude, coord.longitude);
+        // Store the coordinates with the three highest scores
+        // Adjust the comparison logic as needed
+        if (topThreeCoordinates.length < 3 || score > topThreeCoordinates[2].score) {
+            topThreeCoordinates.push({ latitude: coord.latitude, longitude: coord.longitude, score, price: coord.price, address: coord.address });
+            // Sort the array based on scores in descending order
+            topThreeCoordinates.sort((a, b) => b.score - a.score);
+            // Keep only the top three coordinates
+            topThreeCoordinates.splice(3);
+        }
+    }
+
+    // Send the top three coordinates as the response
+    res.json({ success: true, topThreeCoordinates });
+});
+
+module.exports = router;
 
