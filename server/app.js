@@ -1,106 +1,113 @@
-const express = require("express");
-const fetch = require("node-fetch");
-const { response } = require("express");
+const express = require('express');
 const app = express();
-const port = 8000;
-var cors = require("cors");
-app.use(function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept"
-  );
-  next();
-});
-app.set("json spaces", 2);
+const { parseString } = require('xml2js');
 
-// to query, call: http://localhost:8000/gettoken
+const locationsRoute=require('./routes/getLocations');
 
-var APIToken;
-async function getToken() {
-  let appId = "v7udsaema2";
-  let hashToken =
-    "djd1ZHNhZW1hMnxoY0NDYTZrR2JJOE1vNVg0MW4xOThxb1o5ZWR6QjF5NllpaWRGNkww";
-  let url = `https://api.iq.inrix.com/auth/v1/appToken?appId=${appId}&hashToken=${hashToken}`;
-  var requestOptions = {
-    method: "GET",
-  };
-  //Query INRIX for token
-  let response = await fetch(url, requestOptions);
-  let json = await response.json();
-  let output = json.result.token;
+const suggestionsRoute=require('./routes/getSuggestions');
 
-  return output;
-}
+const propertiesRoute = require('./routes/properties');
 
-//Starting server using listen function
-app.listen(port, async function () {
-  console.log("Server has been started at " + port);
-  APIToken = await getToken();
-});
-
-app.get("/findRoute", async function (req, res) {
-  let address1 = req.query.loc1; // reset to req.body.address
-  let address2 = req.query.loc2;
-  var requestOptions2 = {
-    method: "GET",
-    redirect: "follow",
-  };
-
-  var lat1;
-  var long1;
-  var lat2;
-  var long2;
-  let address1APIresponse = await fetch(
-    "http://api.positionstack.com/v1/forward?access_key=4e3d941539b6f2b16a148d4092602345&query=" +
-      address1,
-    requestOptions2
-  );
-  let add1result = await address1APIresponse.json();
-
-  lat1 = add1result.data[0].latitude;
-  long1 = add1result.data[0].longitude;
-  //Set up URL to query
-
-  let address2APIresponse = await fetch(
-    "http://api.positionstack.com/v1/forward?access_key=4e3d941539b6f2b16a148d4092602345&query=" +
-      address2,
-    requestOptions2
-  );
-  let add2result = await address2APIresponse.json();
-
-  lat2 = add2result.data[0].latitude;
-  long2 = add2result.data[0].longitude;
-
-  let url = `https://api.iq.inrix.com/findRoute?wp_1=${lat1}%2C${long1}&wp_2=${lat2}%2C${long2}&maxAlternates=2&format=json`;
-  //Set up query method
-
-  var requestOptions = {
-    method: "GET",
-    headers: { Authorization: "Bearer " + theToken },
-    redirect: "follow",
-  };
-
-  //Query INRIX for token
-  let response = await fetch(url, requestOptions);
-  let json = await response.json();
-  await wait(1001);
-  let output = json.result;
-  let r1 = await getRouteGeography(output.trip.routes[0]);
-  await wait(1001);
-  let r2 = await getRouteGeography(output.trip.routes[1]);
-  await wait(1001);
-  let r3 = await getRouteGeography(output.trip.routes[2]);
+app.get("/api", (req, res) => {
   res.json({
-    //route1: await getRouteGeography(output.trip.routes[0]),
-    route1: r1,
-    route2: r2,
-    route3: r3,
-    //route2: await getRouteGeography(output.trip.routes[1]),
-    //route3: await getRouteGeography(output.trip.routes[2]),
+    key1: "Hi",
+    key2: "Second bit"
   });
 });
 
-function wait(milliseconds) {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+app.get("/", (req, res) => {
+  res.json({ text: "API WORKING!!" })
+});
+
+
+app.use('/get-locations',locationsRoute);
+
+app.use('/get-suggestions',suggestionsRoute);
+
+
+app.use('/get-properties', propertiesRoute);
+
+function xmlToJson(xmlString) {
+  let result = null;
+  parseString(xmlString, (err, res) => {
+    if (!err) {
+      result = res;
+    }
+  });
+  return result;
 }
+
+app.get('/generate-polygon/:lat/:lon/:range', async (req, res) => {
+  try {
+    const inrixUrl = "https://api.iq.inrix.com/drivetimePolygons";
+    const { lat, lon, range } = req.params;
+
+    // Obtain the token using the getToken function
+    const token = await getToken();
+
+    const center = `${lat}|${lon}`;
+
+    const queryParams = {
+      center: center,
+      rangeType: 'A',
+      duration: range
+    };
+
+    const queryString = new URLSearchParams(queryParams).toString();
+
+    const apiUrl = `${inrixUrl}?${queryString}`;
+
+    // You can now use the apiUrl to make the request to the Inrix API
+    // Include the token in the Authorization header
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/xml',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch data from Inrix API: ${response.status} ${response.statusText}`);
+    }
+
+    const xmlData = await response.text();
+    const jsonData = xmlToJson(xmlData);
+    // console.log(jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList);
+
+    res.json(jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList);
+
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+async function getToken() {
+  let appId = "v7udsaema2";
+  let hashToken = "djd1ZHNhZW1hMnxoY0NDYTZrR2JJOE1vNVg0MW4xOThxb1o5ZWR6QjF5NllpaWRGNkww";
+  let url = `https://api.iq.inrix.com/auth/v1/appToken?appId=${appId}&hashToken=${hashToken}`;
+
+  var requestOptions = {
+    method: 'GET'
+  };
+
+  let response = await fetch(url, requestOptions);
+  let json = await response.json();
+
+  return json.result.token;
+}
+
+// Endpoint to get the token
+app.get('/gettoken', async function (req, res) {
+  try {
+    let token = await getToken();
+    res.json({ token: token });
+  } catch (error) {
+    console.error('Error fetching token:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+module.exports = app;
