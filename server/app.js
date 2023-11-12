@@ -1,34 +1,35 @@
-const express = require('express');
+const express = require("express");
 const app = express();
-const { parseString } = require('xml2js');
+const cors = require("cors");
+app.use(cors({ origin: true }));
+app.options('*', cors());
+const { parseString } = require("xml2js");
 const fs = require('fs');
 
 
 
-const locationsRoute=require('./routes/getLocations');
+const locationsRoute = require("./routes/getLocations");
 
-const suggestionsRoute=require('./routes/getSuggestions');
+const suggestionsRoute = require("./routes/getSuggestions");
 
-const propertiesRoute = require('./routes/properties');
+const propertiesRoute = require("./routes/properties");
 
 app.get("/api", (req, res) => {
   res.json({
     key1: "Hi",
-    key2: "Second bit"
+    key2: "Second bit",
   });
 });
 
 app.get("/", (req, res) => {
-  res.json({ text: "API WORKING!!" })
+  res.json({ text: "API WORKING!!" });
 });
 
+app.use("/get-locations", locationsRoute);
 
-app.use('/get-locations',locationsRoute);
+app.use("/get-suggestions", suggestionsRoute);
 
-app.use('/get-suggestions',suggestionsRoute);
-
-
-app.use('/get-properties', propertiesRoute);
+app.use("/get-properties", propertiesRoute);
 
 function xmlToJson(xmlString) {
   let result = null;
@@ -63,10 +64,10 @@ app.get('/init-poly-reset', async (req, res) => {
 });
 
 
-app.get('/generate-polygon/:lat/:lon/:range/:existing', async (req, res) => {
+app.get("/generate-polygon/:lat/:lon/:range", async (req, res) => {
   try {
     const inrixUrl = "https://api.iq.inrix.com/drivetimePolygons";
-    const { lat, lon, range, existing } = req.params;
+    const { lat, lon, range } = req.params;
 
     // Obtain the token using the getToken function
     const token = await getToken();
@@ -75,8 +76,8 @@ app.get('/generate-polygon/:lat/:lon/:range/:existing', async (req, res) => {
 
     const queryParams = {
       center: center,
-      rangeType: 'A',
-      duration: range
+      rangeType: "A",
+      duration: range,
     };
 
     const queryString = new URLSearchParams(queryParams).toString();
@@ -86,15 +87,17 @@ app.get('/generate-polygon/:lat/:lon/:range/:existing', async (req, res) => {
     // You can now use the apiUrl to make the request to the Inrix API
     // Include the token in the Authorization header
     const response = await fetch(apiUrl, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Accept': 'application/xml',
-        'Authorization': `Bearer ${token}`
+        Accept: "application/xml",
+        Authorization: `Bearer ${token}`,
       },
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch data from Inrix API: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to fetch data from Inrix API: ${response.status} ${response.statusText}`
+      );
     }
 
     const xmlData = await response.text();
@@ -102,7 +105,7 @@ app.get('/generate-polygon/:lat/:lon/:range/:existing', async (req, res) => {
     const newPolygon = jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList;
 
     // console.log(jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList);
-    if(existing == "yes"){
+    if(false){
       const filePath = './initpoly.txt'; // Specify the path to your text file
         fs.appendFile(filePath, JSON.stringify(newPolygon) + '\n', (err) => {
             if (err) {
@@ -156,14 +159,21 @@ app.get('/number-on-street/:lat/:lon/:radius', async (req, res) => {
       throw new Error(`Failed to fetch data from Inrix API: ${response.status} ${response.statusText}`);
     }
 
+// <<<<<<< frontend
+//     res.json(
+//       jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0]
+//         .LinearRing[0].posList
+//     );
+// =======
     const jsonData = await response.text();  
     const data = JSON.parse(jsonData);
     console.log(data);
     res.json({spaces: data.MeterCount});
 
+// >>>>>>> main
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -231,11 +241,12 @@ app.get('/number-off-street/:lat/:lon/:radius', async (req, res) => {
 
 async function getToken() {
   let appId = "v7udsaema2";
-  let hashToken = "djd1ZHNhZW1hMnxoY0NDYTZrR2JJOE1vNVg0MW4xOThxb1o5ZWR6QjF5NllpaWRGNkww";
+  let hashToken =
+    "djd1ZHNhZW1hMnxoY0NDYTZrR2JJOE1vNVg0MW4xOThxb1o5ZWR6QjF5NllpaWRGNkww";
   let url = `https://api.iq.inrix.com/auth/v1/appToken?appId=${appId}&hashToken=${hashToken}`;
 
   var requestOptions = {
-    method: 'GET'
+    method: "GET",
   };
 
   let response = await fetch(url, requestOptions);
@@ -245,15 +256,14 @@ async function getToken() {
 }
 
 // Endpoint to get the token
-app.get('/gettoken', async function (req, res) {
+app.get("/gettoken", async function (req, res) {
   try {
     let token = await getToken();
     res.json({ token: token });
   } catch (error) {
-    console.error('Error fetching token:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("Error fetching token:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 
 module.exports = app;
