@@ -61,6 +61,67 @@ function calculateNetAreaFromFile(filePath) {
 }
 
 
+async function generatePolygonsForLocations(range) {
+    for (const location of locations) {
+        try {
+            const response = await fetch(`http://localhost:8000/generate-polygon/${location.latitude}/${location.longitude}/${range}/yes`);
+            if (!response.ok) {
+                throw new Error(`API call failed: ${response.status}`);
+            }
+            const polygonData = await response.json();
+            console.log(polygonData); // Process the data as needed
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+}
+
+/*
+function classifyCoverage(lat1, lng1, lat2, lng2) {
+    // Create a GeoJSON polygon
+    const polygon = turf.polygon([[
+        [lng1, lat2], // Bottom-left
+        [lng1, lat1], // Top-left
+        [lng2, lat1], // Top-right
+        [lng2, lat2], // Bottom-right
+        [lng1, lat1]  // Closing the polygon
+    ]]);
+
+    // Calculate the area in square meters
+    const totalArea = geojsonArea.geometry(polygon.geometry);
+
+    generatePolygonsForLocations(5)
+        .then(() => {
+            const netArea = calculateNetAreaFromFile('./initpoly.txt');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    
+        if(netArea/totalArea>0.5){
+            return 1;
+        }
+        else{
+            generatePolygonsForLocations(locations,10)
+            .then(() => {
+                const netArea = calculateNetAreaFromFile('./initpoly.txt');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        
+            if(netArea/totalArea>0.5){
+                return 2;
+            }
+            else{
+                return 3
+            }
+        }
+
+
+}
+*/
+
 
 
 router.get("/", async (req, res) => {
