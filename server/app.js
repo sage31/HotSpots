@@ -1,6 +1,9 @@
 const express = require('express');
 const app = express();
 const { parseString } = require('xml2js');
+const fs = require('fs');
+
+
 
 const locationsRoute=require('./routes/getLocations');
 
@@ -36,11 +39,34 @@ function xmlToJson(xmlString) {
   });
   return result;
 }
+//ignore
+function clearInitPolyFile() { // Usage clearInitPolyFile();
+  const filePath = './initpoly.txt'; // Adjust the path as needed
 
-app.get('/generate-polygon/:lat/:lon/:range', async (req, res) => {
+  fs.writeFile(filePath, '', (err) => {
+      if (err) {
+          console.error('Error clearing file:', err);
+      } else {
+          console.log('File cleared successfully');
+      }
+  });
+}
+
+app.get('/init-poly-reset', async (req, res) => {
+  try {
+      const message = await clearInitPolyFile();
+      res.json({ success: true, message: message });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ success: false, error: error });
+  }
+});
+
+
+app.get('/generate-polygon/:lat/:lon/:range/:existing', async (req, res) => {
   try {
     const inrixUrl = "https://api.iq.inrix.com/drivetimePolygons";
-    const { lat, lon, range } = req.params;
+    const { lat, lon, range, existing } = req.params;
 
     // Obtain the token using the getToken function
     const token = await getToken();
@@ -73,15 +99,135 @@ app.get('/generate-polygon/:lat/:lon/:range', async (req, res) => {
 
     const xmlData = await response.text();
     const jsonData = xmlToJson(xmlData);
-    // console.log(jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList);
+    const newPolygon = jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList;
 
-    res.json(jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList);
+    // console.log(jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList);
+    if(existing == "yes"){
+      const filePath = './initpoly.txt'; // Specify the path to your text file
+        fs.appendFile(filePath, JSON.stringify(newPolygon) + '\n', (err) => {
+            if (err) {
+                console.error('Error writing to file:', err);
+                return res.status(500).json({ error: 'Error writin to file' });
+            }
+        });
+    }
+    
+    res.json(newPolygon);
 
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
+
+app.get('/number-on-street/:lat/:lon/:radius', async (req, res) => {
+  try {
+    const inrixUrl = "https://api.iq.inrix.com/blocks/v3";
+    const { lat, lon, radius } = req.params;
+
+    // Obtain the token using the getToken function
+    const token = await getToken();
+
+    const center = `${lat}|${lon}`;
+
+    const queryParams = {
+      point: center,
+      radius: radius
+    };
+
+    const queryString = new URLSearchParams(queryParams).toString();
+
+    const apiUrl = `${inrixUrl}?${queryString}`;
+    console.log(apiUrl);
+
+    // You can now use the apiUrl to make the request to the Inrix API
+    // Include the token in the Authorization header
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch data from Inrix API: ${response.status} ${response.statusText}`);
+    }
+
+    const jsonData = await response.text();  
+    const data = JSON.parse(jsonData);
+    console.log(data);
+    res.json({spaces: data.MeterCount});
+
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+function getTotalSpaces(data) {
+  if (data.length === 0)
+    return 0;
+
+  let sum = 0;
+  for (let i = 0; i < data.length; i++) {
+    console.log(data[i].spacesTotal);
+    sum += data[i].spacesTotal;
+  }
+  return sum;
+}
+
+
+app.get('/number-off-street/:lat/:lon/:radius', async (req, res) => {
+  try {
+    const inrixUrl = "https://api.iq.inrix.com/lots/v3";
+    const { lat, lon, radius } = req.params;
+
+    // Obtain the token using the getToken function
+    const token = await getToken();
+
+    const center = `${lat}|${lon}`;
+
+    const queryParams = {
+      point: center,
+      radius: radius
+    };
+
+    const queryString = new URLSearchParams(queryParams).toString();
+
+    const apiUrl = `${inrixUrl}?${queryString}`;
+    console.log(apiUrl);
+
+    // You can now use the apiUrl to make the request to the Inrix API
+    // Include the token in the Authorization header 
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch data from Inrix API: ${response.status} ${response.statusText}`);
+    }
+
+    const jsonData = await response.text();  
+    const data = JSON.parse(jsonData);
+    // console.log(data.result);
+    res.json({spaces: getTotalSpaces(data.result)});
+
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+
+
 
 async function getToken() {
   let appId = "v7udsaema2";
