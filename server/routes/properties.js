@@ -30,7 +30,7 @@ router.get("/:latTL/:lngTL/:latBR/:lngBR", async (req, res) => {
     const midLat = (latTL + latBR) / 2;
     const midLng = (lngTL + lngBR) / 2;
     const query = 'geoLocation:[' + midLng + ',' + midLat + ',' + 0.5 + ',km] AND propertyType:"Retail" AND mostRecentStatus="For Sale"';
-    const num_records = 2;
+    const num_records = 5;
     const download = false;
 
 
@@ -50,14 +50,14 @@ router.get("/:latTL/:lngTL/:latBR/:lngBR", async (req, res) => {
         })
     };
 
-    console.log(requestOptions);
+    //console.log(requestOptions);
 
     try {
         const response = await fetch(url, requestOptions);
         const data = await response.text();
         const parsedData = JSON.parse(data);
-        console.log(parsedData);
-        console.log(parsedData["num_found"]);
+        //console.log(parsedData);
+        //console.log(parsedData["num_found"]);
 
         const result = parsedData.records.map((record) => ({
             latitude: record.latitude,
@@ -65,14 +65,13 @@ router.get("/:latTL/:lngTL/:latBR/:lngBR", async (req, res) => {
             price: record.mostRecentPriceAmount
         }));
 
-        console.log(result);
+        //console.log(result);
         res.json(result);
 
     } catch (error) {
         console.error(error);
     }
 
-    res.json({ message: "API call initiated" });
 });
 
 module.exports = router;
