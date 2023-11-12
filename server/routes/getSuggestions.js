@@ -186,41 +186,15 @@ function getScore(lat, lng){
 
 function initializeComposite(filePath) {
     return new Promise((resolve, reject) => {
-        var polygons;
-        console.log("asdf")
         fs.readFile(filePath, 'utf8', (err, data) => {
             if (err) {
-                console.log("errrr")
-                reject(err);
+                reject('Error reading file: ' + err);
                 return;
             }
-            console.log("parsing");
-            try {
-                const regex = /\["(.*?)"\]/g;
-                polygons = [];
-                let match;
-
-                while ((match = regex.exec(data)) !== null) {
-                    polygons.push(match[1]);
-                    console.log("hi: " + match[1]);
-                }
-                
-                resolve(polygons);
-            } catch (parseError) {
-                console.log("ars")
-                reject(parseError);
-            }
-        });
-
-        // fs.readFile(filePath, 'utf8', (err, data) => {
-        //     if (err) {
-        //         reject('Error reading file: ' + err);
-        //         return;
-        //     }
 
             try {
                 // Ensure data is in the correct format for JSON parsing
-                //polygons = JSON.parse(data.trim());
+                const polygons = JSON.parse(data.trim());
                 let union;
 
                 polygons.forEach(polygonString => {
@@ -255,12 +229,36 @@ function initializeComposite(filePath) {
             } catch (Error) {
                 reject('Error parsing asdfJSON: ' + Error);
             }
-        // });
+        });
     });
 }
-router.get("/", async (req, res) => {
+
+async function getAvailableRealEstate(latTL, lngTL,latBR, lngBR) {
+    const url = `http://localhost:8000/get-properties?latTL=${latTL}&lngTL=${lngTL}&latBR=${latBR}&lngBR=${lngBR}`;
+    // Replace the above URL with your actual endpoint and query parameters
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        
+        return data;
+    } catch (error) {
+        console.error("Error fetching data: ", error);
+        return [];
+    }
+}
+
+
+router.get("//:latTL/:lngTL/:latBR/:lngBR", async (req, res) => {
     const filePath = "./initpoly.txt";
-    initializeComposite(filePath);
+    //initializeComposite(filePath);
+    realestate = await getAvailableRealEstate(latTL, lngTL, latBR, lngBR);
+    console.log(realestate);
+
     // const filePath = './initpoly.txt'; // Adjust the path as needed
 
     // try {
