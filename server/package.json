@@ -9,6 +9,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2"
+    "@googlemaps/google-maps-services-js": "^3.3.41",
+    "express": "^4.18.2",
+    "geojson-area": "^0.2.1",
+    "turf": "^3.0.14",
+    "xml2js": "^0.6.2"
   }
 }
