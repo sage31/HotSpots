@@ -168,7 +168,7 @@ function getScore(lat, lng) {
 
 
 
-    return 50 + normalization;
+    return 50 + normalization.toFixed(2);
     //read in union polygon from initcomposite.txt
     polygon =
 
