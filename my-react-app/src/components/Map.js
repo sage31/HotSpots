@@ -64,7 +64,7 @@ const Map = (params) => {
       wireframe: true,
       lineWidthMinPixels: 1,
       getPolygon: (d) => d.contour,
-      getFillColor: [255, 140, 0],
+      getFillColor: [0, 255, 0, 100],
       getLineColor: [80, 80, 80],
       getLineWidth: 1,
     });
