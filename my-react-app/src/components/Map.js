@@ -159,7 +159,12 @@ const Map = (params) => {
       wireframe: true,
       lineWidthMinPixels: 1,
       getPolygon: (d) => d.contour,
-      getFillColor: (d) => [255, d.isNew ? 192 : 0, d.isNew ? 203 : 0, 100],
+      getFillColor: (d) => [
+        d.isNew ? 0 : 255,
+        d.isNew ? 192 : 0,
+        d.isNew ? 203 : 0,
+        100,
+      ],
       getLineColor: [80, 80, 80],
       getLineWidth: 1,
     });
@@ -177,7 +182,7 @@ const Map = (params) => {
         continue;
       }
       console.log(locations[i]);
-      if (locations[i].address)
+      //if (locations[i].address)
         newCardInfos.push({
           title: "Prospective location " + i,
           address: "Address: " + locations[i].address,
@@ -186,7 +191,7 @@ const Map = (params) => {
           score: "Score " + locations[i].score,
           coordinates: [locations[i].longitude, locations[i].latitude],
         });
-      if (locations[i].address)
+      //if (locations[i].address)
         locationsData.push({
           name: "Location" + i,
           address: "Address" + i,
