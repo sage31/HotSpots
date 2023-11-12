@@ -530,21 +530,21 @@ const Autocomplete = ({ onSelect }) => {
     <div className="flex justify-center mt-3">
       <input
         type="text"
-        className="text-center p-1 rounded ml-2 bg-gray-100"
+        className="search-bar text-center p-1 rounded ml-2 bg-gray-100"
         value={value}
         onChange={(e) => handleInputChange(e.target.value)}
         placeholder="Search a business"
       />
       {suggestions.length > 0 && (
-        <div className="rounded suggestions-list z-50 w-60 fixed flex items-center justify-center bg-gray-100">
-          <ul className="rounded">
+        <div className="rounded suggestions-list z-50 fixed flex items-center justify-center bg-gray-100">
+          <ul className="">
             {suggestions.map((location, index) => (
               <li
                 //className=" ml-3 w-60 text-center bg-gray-300"
                 //className="absolute z-50 inset-0 bg-gray-300 bg-opacity-40"
                 key={index}
                 onClick={() => handleSelect(location)}
-                className="bg-opacity-40 hover:bg-gray-400 p-1 rounded cursor-pointer transition-colors duration-300"
+                className="suggestion-item"
               >
                 {location}
               </li>

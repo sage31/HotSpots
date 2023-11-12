@@ -42,11 +42,32 @@ code {
     monospace;
 }
 
-.suggestions-list{
-  top: 14.25vh;
-  background-color: (245, 245, 245, 0.5);
+.search-bar {
+  width: 18vw;
 }
 
-.search-bar{
-  width: 15vw;
+.suggestions-list{
+  top: 14.25vh;
+  width: 18vw;
+  background-color: rbga(245, 245, 245, 0.5);
+}
+
+.suggestion-item {
+  width: 18vw;
+  background-color: rbga(245, 245, 245, 0.5);
+  /* bg-opacity-40 */
+  transition: background-color 0.3s ease;
+  /* transition-colors duration-300 */
+
+  &:hover {
+    background-color: #CBD5E0;
+    /* hover:bg-gray-400 */
+  }
+
+  padding: 0.25rem;
+  /* p-1 */
+  border-radius: 0.25rem;
+  /* rounded */
+  cursor: pointer;
+  /* cursor-pointer */
 }

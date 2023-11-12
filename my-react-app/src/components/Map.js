@@ -53,6 +53,9 @@ const Map = (params) => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [sidebarOpen, setSideBarOpen] = useState(true);
   const handleAnalyzeRegion = () => {
+
+    fetch("http://localhost:3001/api/analyze", {}
+    )
     console.log("hello");
     const layer = new PolygonLayer({
       id: "polygon-layer",
@@ -145,10 +148,7 @@ const Map = (params) => {
         <div onClick={handleViewSidebar} className="sidebar-toggle">
           <Hamburger rounded toggled={sidebarOpen} toggle={setSideBarOpen} />
         </div>
-        <button
-          onClick={handleAnalyzeRegion}
-          className="p-4 flex flex-col items-center"
-        >
+        <button onClick={handleAnalyzeRegion} className="p-4 flex flex-col items-center w-full">
           <p className>Analyze This Region</p>
           <img
             width="10px"
@@ -162,7 +162,7 @@ const Map = (params) => {
             title={selectedLocation.title}
             address={selectedLocation.address}
             neighborhood={selectedLocation.neighborhood}
-            description={selectedLocation.description}
+            description={selectedLocation.description} 
             score={selectedLocation.score}
           />
         )}
