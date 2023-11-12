@@ -62,7 +62,8 @@ router.get("/:latTL/:lngTL/:latBR/:lngBR", async (req, res) => {
         const result = parsedData.records.map((record) => ({
             latitude: record.latitude,
             longitude: record.longitude,
-            price: record.mostRecentPriceAmount
+            price: record.mostRecentPriceAmount,
+            address: record.address
         }));
 
         //console.log(result);

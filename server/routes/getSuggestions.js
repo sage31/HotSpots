@@ -270,7 +270,7 @@ function getOnStreetSpotsCount(lat, lon, radius) {
             // Store the coordinates with the three highest scores
             // Adjust the comparison logic as needed
             if (topThreeCoordinates.length < 3 || score > topThreeCoordinates[2].score) {
-                topThreeCoordinates.push({ latitude: coord.latitude, longitude: coord.longitude, score });
+                topThreeCoordinates.push({ latitude: coord.latitude, longitude: coord.longitude, score, price: coord.price, address: coord.address });
                 // Sort the array based on scores in descending order
                 topThreeCoordinates.sort((a, b) => b.score - a.score);
                 // Keep only the top three coordinates
