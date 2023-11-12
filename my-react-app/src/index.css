@@ -14,7 +14,7 @@ body {
 
 .sidebar {
   position: absolute;
-  /* margin-top: 3vh; */
+  margin-top: 1vh;
   right: -20vw;
   /* height: 30vh; */
   width: 20vw;
@@ -50,6 +50,7 @@ code {
   top: 14.25vh;
   width: 18vw;
   background-color: rbga(245, 245, 245, 0.5);
+  right: 1vw;
 }
 
 .suggestion-item {

@@ -530,7 +530,7 @@ const Autocomplete = ({ onSelect }) => {
     <div className="flex justify-center mt-3">
       <input
         type="text"
-        className="search-bar text-center p-1 rounded ml-2 bg-gray-100"
+        className="search-bar text-center p-1 rounded bg-gray-100"
         value={value}
         onChange={(e) => handleInputChange(e.target.value)}
         placeholder="Search a business"

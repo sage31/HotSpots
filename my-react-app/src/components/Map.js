@@ -13,7 +13,7 @@ const googleApiKey = "AIzaSyDDh5-81gvbR0DtxHa5Q8ss2-qnq34PGmg";
 const rawCoords =
   "37.8079676628113 -122.44247674942 37.806658744812 -122.435846328735 37.8071093559265 -122.427778244019 37.8076028823853 -122.420418262482 37.8083109855652 -122.410826683044 37.80592918396 -122.404260635376 37.803955078125 -122.401685714722 37.8139543533325 -122.361130714417 37.8081178665161 -122.367224693298 37.7872395515442 -122.384626865387 37.7835702896118 -122.388296127319 37.7736568450928 -122.381880283356 37.7697730064392 -122.383511066437 37.7599239349365 -122.382202148438 37.7516198158264 -122.38050699234 37.7458047866821 -122.381730079651 37.7367496490479 -122.379434108734 37.7335953712463 -122.382287979126 37.7156352996826 -122.383575439453 37.7111506462097 -122.386450767517 37.6781058311462 -122.388253211975 37.6592659950256 -122.396900653839 37.6379156112671 -122.404561042786 37.63014793396 -122.434430122375 37.6320147514343 -122.436769008636 37.6430869102478 -122.45726108551 37.6264786720276 -122.488095760345 37.6753377914429 -122.490391731262 37.6960873603821 -122.494511604309 37.7078461647034 -122.498159408569 37.7217292785645 -122.501270771027 37.7302050590515 -122.506506443024 37.737865447998 -122.506463527679 37.7452898025513 -122.507450580597 37.7527141571045 -122.508437633514 37.7640223503113 -122.510454654694 37.7712750434875 -122.511162757874 37.7764248847961 -122.511677742004 37.7827119827271 -122.511312961578 37.7840852737427 -122.504403591156 37.7864027023315 -122.492172718048 37.7894282341003 -122.486035823822 37.7942776679993 -122.480413913727 37.8018522262573 -122.477130889893 37.8095126152039 -122.47740983963 37.9036688804626 -122.519595623016 37.9055786132813 -122.515454292297 37.8033328056335 -122.454042434692 37.8070449829102 -122.447519302368 37.8079676628113 -122.44247674942";
 
-  function formatData(inputString) {
+function formatData(inputString) {
   const pairs = inputString.trim().split(/\s+/); // Assuming pairs are separated by whitespace
   const formattedData = [];
 
@@ -53,10 +53,57 @@ const Map = (params) => {
   const [showInfoCards, setShowInfoCards] = useState(false); // State to control Infocard visibility
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [sidebarOpen, setSideBarOpen] = useState(true);
-  const handleAnalyzeRegion = () => {
+  const handleAnalyzeRegion = async () => {
+    // grab the potential locations
+    const getLocationsUrl = "http://localhost:8000/get-locations";
 
-    fetch("http://localhost:3001/api/analyze", {}
-    )
+    var locations = [];
+    console.log(selectedLocation);
+    console.log(mapState.topLeftCorner[0]);
+    console.log(mapState.bottomRightCorner[1]);
+    try {
+      console.log(
+        `${getLocationsUrl}/${selectedLocation}/${mapState.topLeftCorner[0]}/${mapState.topLeftCorner[1]}/${mapState.bottomRightCorner[0]}/${mapState.bottomRightCorner[1]}`
+      );
+      const requestOptions = {
+        method: "GET",
+      };
+      const response = await fetch(
+        `${getLocationsUrl}/${selectedLocation}/${mapState.topLeftCorner[0]}/${mapState.topLeftCorner[1]}/${mapState.bottomRightCorner[0]}/${mapState.bottomRightCorner[1]}`,
+        requestOptions
+      );
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      locations = await response.json();
+      console.log(locations); // Do something with the response data
+    } catch (error) {
+      console.error("Error:", error);
+    }
+
+    const apiUrl = "http://localhost:8000/generate-polygon";
+
+    var polygons = formatData(locations); // Use the formatted coordinates
+
+    for (var i = 0; i < locations.length; i++) {
+      try {
+        const response = await fetch(
+          `${apiUrl}/${locations[i].latitude}/${locations[i].longitude}/5`
+        );
+
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        const data = await response.json();
+        console.log(data); // Do something with the response data
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    }
+
     console.log("hello");
     const layer = new PolygonLayer({
       id: "polygon-layer",
@@ -79,6 +126,12 @@ const Map = (params) => {
       bottomRightCorner: mapState.bottomRightCorner,
     });
     deckLayers = [layer];
+  };
+  const handleAnalyzeClick = () => {
+    if (selectedLocation) {
+      // Only show Infocard if a location is selected
+      setShowInfoCards(!showInfoCards);
+    }
   };
   const handleViewSidebar = () => {
     setSideBarOpen(!sidebarOpen);
@@ -149,7 +202,10 @@ const Map = (params) => {
         <div onClick={handleViewSidebar} className="sidebar-toggle">
           <Hamburger rounded toggled={sidebarOpen} toggle={setSideBarOpen} />
         </div>
-        <button onClick={handleAnalyzeRegion} className="p-4 flex flex-col items-center w-full">
+        <button
+          onClick={handleAnalyzeRegion}
+          className="p-4 flex flex-col items-center w-full"
+        >
           <p className>Analyze This Region</p>
           <img
             width="10px"
@@ -163,7 +219,7 @@ const Map = (params) => {
             title={selectedLocation.title}
             address={selectedLocation.address}
             neighborhood={selectedLocation.neighborhood}
-            description={selectedLocation.description} 
+            description={selectedLocation.description}
             score={selectedLocation.score}
           />
         )}
