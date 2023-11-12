@@ -166,6 +166,66 @@ app.get('/number-on-street/:lat/:lon/:radius', async (req, res) => {
   }
 });
 
+function getTotalSpaces(data) {
+  if (data.length === 0)
+    return 0;
+
+  let sum = 0;
+  for (let i = 0; i < data.length; i++) {
+    console.log(data[i].spacesTotal);
+    sum += data[i].spacesTotal;
+  }
+  return sum;
+}
+
+
+app.get('/number-off-street/:lat/:lon/:radius', async (req, res) => {
+  try {
+    const inrixUrl = "https://api.iq.inrix.com/lots/v3";
+    const { lat, lon, radius } = req.params;
+
+    // Obtain the token using the getToken function
+    const token = await getToken();
+
+    const center = `${lat}|${lon}`;
+
+    const queryParams = {
+      point: center,
+      radius: radius
+    };
+
+    const queryString = new URLSearchParams(queryParams).toString();
+
+    const apiUrl = `${inrixUrl}?${queryString}`;
+    console.log(apiUrl);
+
+    // You can now use the apiUrl to make the request to the Inrix API
+    // Include the token in the Authorization header 
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch data from Inrix API: ${response.status} ${response.statusText}`);
+    }
+
+    const jsonData = await response.text();  
+    const data = JSON.parse(jsonData);
+    // console.log(data.result);
+    res.json({spaces: getTotalSpaces(data.result)});
+
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+
 
 
 async function getToken() {

@@ -60,19 +60,76 @@ function calculateNetAreaFromFile(filePath) {
     });
 }
 
+function getOffStreetSpotsCount(lat, lon, radius) {
+    const apiUrl = `http://localhost:8000/number-off-street/${lat}/${lon}/${radius}`;
 
+    return fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => data.spots) // Adjust this based on the actual structure of the returned JSON
+        .catch(error => {
+            console.error('Error fetching off-street parking spots:', error);
+            return 0; // Return a default value or handle the error as needed
+        });
+}
 
+function getOnStreetSpotsCount(lat, lon, radius) {
+    const apiUrl = `http://localhost:8000/number-on-street/${lat}/${lon}/${radius}`;
+
+    return fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => data.spots) // Adjust this based on the actual structure of the returned JSON
+        .catch(error => {
+            console.error('Error fetching on-street parking spots:', error);
+            return 0; // Return a default value or handle the error as needed
+        });
+}
+
+function getScore(lat, lng){
+    //read in union polygon from initcomposite.txt
+    polygon = 
+
+    //read in old area from initcomposite.txt
+    oldArea = 
+
+    union = turf.union(union, polygon);
+    newArea = geojsonArea.geometry(union.geometry);
+
+    changeInArea = newArea - oldArea;
+
+    //radius of parking lots within 350 meters
+    parkingRadius = 350;
+    offStreetSpots = getOffStreetSpotsCount(lat, lng, radius)
+    onStreetSpots = getOnStreetSpotsCount(lat, lng, radius)
+    totalParking = offStreetSpots + onStreetSpotsl;
+
+    coverageWeight = .5;
+    parkingWeight = .8;
+
+    return coverageWeight*changeInArea + parkingWeight*totalParking;
+}
 
 router.get("/", async (req, res) => {
-    const filePath = './initpoly.txt'; // Adjust the path as needed
+    
+    // const filePath = './initpoly.txt'; // Adjust the path as needed
 
-    try {
-        const totalArea = await calculateNetAreaFromFile(filePath);
+    // try {
+    //     const totalArea = await calculateNetAreaFromFile(filePath);
 
-        res.json({ success: true, totalArea: totalArea });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, error: error });
-    }
+    //     res.json({ success: true, totalArea: totalArea });
+    // } catch (error) {
+    //     console.error(error);
+    //     res.status(500).json({ success: false, error: error });
+    // }
 });
+
 module.exports = router;
