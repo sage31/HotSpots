@@ -9,9 +9,44 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+.sidebar {
+  position: absolute;
+  /* margin-top: 3vh; */
+  right: -20vw;
+  /* height: 30vh; */
+  width: 20vw;
+  transition: right 0.3s ease-in-out;
+  background-color: white;
+}
+.sidebar-toggle {
+  position: absolute;
+  top: 6vh;
+  left: -49px;
+  height: 50px;
+  width: 49px;
+  z-index: 1;
+  text-align: center;
+  background-color: white;
+  border-radius: 5px 0px 0px 5px;
+}
+
+.sidebar.open {
+  right: 0;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
+}
+
+.suggestions-list{
+  top: 14.25vh;
+  background-color: (245, 245, 245, 0.5);
+}
+
+.search-bar{
+  width: 15vw;
 }
