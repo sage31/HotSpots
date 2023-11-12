@@ -188,7 +188,7 @@ const Map = (params) => {
         newCardInfos.push({
           title: "Prospective location " + i,
           address: "Address: " + locations[i].address,
-          neighborhood: "Our ranking: " + (num * 10).toFixed(2),
+          neighborhood: "Price: " + locations[i].price,
           description: "Price: " + locations[i].price,
           score: "Score " + locations[i].score,
           coordinates: [locations[i].longitude, locations[i].latitude],
@@ -347,7 +347,7 @@ const Map = (params) => {
             {showInfoCards && selectedLocation && cardInfos && (
               <>
                 <h1 className="mx-auto text-xl w-[90%] bg-gray-100">
-                  Current Locations
+                  Suggested Locations
                 </h1>
                 <ul>
                   {cardInfos.map((placeInfo, index) => (
