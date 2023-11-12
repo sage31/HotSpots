@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const { parseString } = require('xml2js');
 
+
 const locationsRoute=require('./routes/getLocations');
 
 const suggestionsRoute=require('./routes/getSuggestions');
@@ -37,10 +38,10 @@ function xmlToJson(xmlString) {
   return result;
 }
 
-app.get('/generate-polygon/:lat/:lon/:range', async (req, res) => {
+app.get('/generate-polygon/:lat/:lon/:range/:existing', async (req, res) => {
   try {
     const inrixUrl = "https://api.iq.inrix.com/drivetimePolygons";
-    const { lat, lon, range } = req.params;
+    const { lat, lon, range, existing } = req.params;
 
     // Obtain the token using the getToken function
     const token = await getToken();
@@ -73,9 +74,20 @@ app.get('/generate-polygon/:lat/:lon/:range', async (req, res) => {
 
     const xmlData = await response.text();
     const jsonData = xmlToJson(xmlData);
-    // console.log(jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList);
+    const newPolygon = jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList;
 
-    res.json(jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList);
+    // console.log(jsonData.Inrix.Polygons[0].DriveTime[0].Polygon[0].exterior[0].LinearRing[0].posList);
+    if(existing == "yes"){
+      const filePath = 'server/initpoly.txt'; // Specify the path to your text file
+        fs.appendFile(filePath, JSON.stringify(newPolygon) + '\n', (err) => {
+            if (err) {
+                console.error('Error writing to file:', err);
+                return res.status(500).json({ error: 'Internal Server Error' });
+            }
+        });
+    }
+    
+    res.json(newPolygon);
 
   } catch (error) {
     console.error('Error:', error);

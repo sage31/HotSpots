@@ -3,16 +3,35 @@ const router = express.Router();
 const turf = require('turf');
 const geojsonArea = require('geojson-area');
 
-function calculateNetArea(geoJsonPolygons) {
+function parsePolygonString(polygonString) {
+    const coordinates = polygonString.split(" ").map((val, index, array) => {
+        if (index % 2 === 0) {
+            return [parseFloat(array[index + 1]), parseFloat(val)];
+        }
+        return null;
+    }).filter(val => val);
+    
+    return {
+        type: "Polygon",
+        coordinates: [coordinates]
+    };
+}
+
+function calculateNetArea(polygons) {
     let union;
-    geoJsonPolygons.features.forEach(polygon => {
+    polygons.forEach(polygonString => {
+        const polygon = {
+            type: "Feature",
+            geometry: parsePolygonString(polygonString)
+        };
+
         if (!union) {
             union = polygon;
         } else {
             union = turf.union(union, polygon);
         }
     });
-    // Calculate the total area
+
     const totalArea = geojsonArea.geometry(union.geometry);
 
     return totalArea;
