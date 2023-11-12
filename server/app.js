@@ -4,6 +4,8 @@ const { parseString } = require('xml2js');
 
 const locationsRoute=require('./routes/getLocations');
 
+const suggestionsRoute=require('./routes/getSuggestions');
+
 
 app.get("/api", (req, res) => {
   res.json({
@@ -18,6 +20,8 @@ app.get("/", (req, res) => {
 
 
 app.use('/get-locations',locationsRoute);
+
+app.use('/get-suggestions',suggestionsRoute);
 
 
 function xmlToJson(xmlString) {
