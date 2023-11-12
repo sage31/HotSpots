@@ -13,6 +13,7 @@ const googleApiKey = "AIzaSyDDh5-81gvbR0DtxHa5Q8ss2-qnq34PGmg";
 
 function formatData(inputString) {
   inputString = inputString[0];
+  console.log(inputString + "hi");
   const pairs = inputString.trim().split(/\s+/); // Assuming pairs are separated by whitespace
   const formattedData = [];
 
@@ -79,9 +80,14 @@ const Map = (params) => {
     } catch (error) {
       console.error("Error:", error);
     }
+    const newSuggestions = await fetch(
+      `http://localhost:8000/get-suggestions/37.78729165372433/-122.47979708727777/37.7349752842654/-122.4017769914526`
+    );
+
+    let polygons = [];
 
     const apiUrl = "http://localhost:8000/generate-polygon";
-    let polygons = [];
+
     for (var i = 0; i < locations.length; i++) {
       if (
         locations[i].latitude > mapState.topLeftCorner[1] ||
@@ -118,6 +124,32 @@ const Map = (params) => {
       }
     }
 
+    console.log(JSON.stringify(polygons));
+    let newSuggestionsData = await newSuggestions.json();
+    console.log("received new: " + JSON.stringify(newSuggestionsData));
+    newSuggestionsData = newSuggestionsData.topThreeCoordinates;
+    for (i = 0; i < newSuggestionsData.length; i++) {
+      const response = await fetch(
+        `${apiUrl}/${newSuggestionsData[i].latitude}/${newSuggestionsData[i].longitude}/5`
+      );
+      const newData = await response.json();
+      console.log(newData);
+      polygons.push({
+        contour: formatData(newData),
+        properties: {},
+        isNew: true,
+        name: "Prospective location" + (i + 1),
+        address: newSuggestionsData[i].address,
+      });
+      locations.push({
+        latitude: newSuggestionsData[i].latitude,
+        longitude: newSuggestionsData[i].longitude,
+        address: newSuggestionsData[i].address,
+        score: newSuggestionsData[i].score,
+        price: newSuggestionsData[i].price,
+      });
+    }
+
     const polyLayer = new PolygonLayer({
       id: "polygon-layer",
       data: polygons,
@@ -127,42 +159,45 @@ const Map = (params) => {
       wireframe: true,
       lineWidthMinPixels: 1,
       getPolygon: (d) => d.contour,
-      getFillColor: [255, 0, 0, 100],
+      getFillColor: (d) => [255, d.isNew ? 192 : 0, d.isNew ? 203 : 0, 100],
       getLineColor: [80, 80, 80],
       getLineWidth: 1,
     });
 
-    const ICON_MAPPING = {
-      marker: { x: 0, y: 0, width: 128, height: 128, mask: true },
-    };
-
     let newCardInfos = [];
     let locationsData = [];
     for (i = 0; i < locations.length; i++) {
-      if (
-        locations[i].latitude > mapState.topLeftCorner[1] ||
-        locations[i].latitude < mapState.bottomRightCorner[1] ||
-        locations[i].longitude > mapState.bottomRightCorner[0] ||
-        locations[i].longitude < mapState.topLeftCorner[0]
-      ) {
-        locations.splice(i, 1);
-        continue;
-      }
+      // if (
+      //   locations[i].latitude > mapState.topLeftCorner[1] ||
+      //   locations[i].latitude < mapState.bottomRightCorner[1] ||
+      //   locations[i].longitude > mapState.bottomRightCorner[0] ||
+      //   locations[i].longitude < mapState.topLeftCorner[0]
+      // ) {
+      //   locations.splice(i, 1);
+      //   continue;
+      // }
+      console.log(locations[i]);
+      //if (locations[i].address)
       newCardInfos.push({
-        title: "location " + i,
-        address: "Address " + i,
-        neighborhood: "Neighborhood " + i,
-        description: "Description " + i,
-        score: "Score " + i,
+        title: "Prospective location " + i,
+        address: "Address: " + locations[i].address,
+        neighborhood: "Our ranking: " + 10,
+        description: "Price: " + locations[i].price,
+        score: "Score " + locations[i].score,
         coordinates: [locations[i].longitude, locations[i].latitude],
       });
+      //if (locations[i].address)
       locationsData.push({
-        name: "location" + i,
+        name: "Location" + i,
         address: "Address" + i,
         exits: "Exits" + i,
-        coordinates: [locations[i].longitude, locations[i].latitude],
+        coordinates: [locations[i].longitude, locations[i].longitude],
       });
     }
+    console.log(JSON.stringify(locationsData));
+    const ICON_MAPPING = {
+      marker: { x: 0, y: 0, width: 128, height: 128, mask: true },
+    };
     const iconLayer = new IconLayer({
       id: "icon-layer",
       data: locationsData,
@@ -176,6 +211,7 @@ const Map = (params) => {
       getSize: (d) => 5,
       getColor: (d) => [0, 0, 0],
     });
+    console.log(JSON.stringify(iconLayer));
     deckLayers = [polyLayer, iconLayer];
     setMapState({
       viewstate: mapState.viewstate,
