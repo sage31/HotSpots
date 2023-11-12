@@ -7,14 +7,12 @@ const client = new Client({});
 
 router.get("/:query", async (req, res) => {
     try {
-        const response = await client.findPlaceFromText({
+        const response = await client.textSearch({
             params: {
-                input: req.params.query,
-                inputtype: 'textquery',
-                key: 'AIzaSyDDh5-81gvbR0DtxHa5Q8ss2-qnq34PGmg', 
-                // You can add additional parameters here as needed
+                query: req.params.query,
+                key: 'AIzaSyDDh5-81gvbR0DtxHa5Q8ss2-qnq34PGmg' // Replace with your actual API key
             },
-            timeout: 1000 // Optional, specify a timeout in milliseconds
+            timeout: 1000 // Optional timeout in milliseconds
         });
 
         res.json(response.data);
