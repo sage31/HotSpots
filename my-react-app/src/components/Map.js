@@ -182,8 +182,6 @@ const Map = (params) => {
         continue;
       }
       console.log(locations[i]);
-      //random number generator
-      let num = Math.random();
       if (locations[i].address)
         newCardInfos.push({
           title: "Prospective location " + i,
