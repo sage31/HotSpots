@@ -142,8 +142,8 @@ const Map = (params) => {
         address: newSuggestionsData[i].address,
       });
       locations.push({
-        latitude: newSuggestionsData[i].latitude,
-        longitude: newSuggestionsData[i].longitude,
+        latitude: parseFloat(newSuggestionsData[i].latitude),
+        longitude: parseFloat(newSuggestionsData[i].longitude),
         address: newSuggestionsData[i].address,
         score: newSuggestionsData[i].score,
         price: newSuggestionsData[i].price,
@@ -167,32 +167,32 @@ const Map = (params) => {
     let newCardInfos = [];
     let locationsData = [];
     for (i = 0; i < locations.length; i++) {
-      // if (
-      //   locations[i].latitude > mapState.topLeftCorner[1] ||
-      //   locations[i].latitude < mapState.bottomRightCorner[1] ||
-      //   locations[i].longitude > mapState.bottomRightCorner[0] ||
-      //   locations[i].longitude < mapState.topLeftCorner[0]
-      // ) {
-      //   locations.splice(i, 1);
-      //   continue;
-      // }
+      if (
+        locations[i].latitude > mapState.topLeftCorner[1] ||
+        locations[i].latitude < mapState.bottomRightCorner[1] ||
+        locations[i].longitude > mapState.bottomRightCorner[0] ||
+        locations[i].longitude < mapState.topLeftCorner[0]
+      ) {
+        locations.splice(i, 1);
+        continue;
+      }
       console.log(locations[i]);
-      //if (locations[i].address)
-      newCardInfos.push({
-        title: "Prospective location " + i,
-        address: "Address: " + locations[i].address,
-        neighborhood: "Our ranking: " + 10,
-        description: "Price: " + locations[i].price,
-        score: "Score " + locations[i].score,
-        coordinates: [locations[i].longitude, locations[i].latitude],
-      });
-      //if (locations[i].address)
-      locationsData.push({
-        name: "Location" + i,
-        address: "Address" + i,
-        exits: "Exits" + i,
-        coordinates: [locations[i].longitude, locations[i].longitude],
-      });
+      if (locations[i].address)
+        newCardInfos.push({
+          title: "Prospective location " + i,
+          address: "Address: " + locations[i].address,
+          neighborhood: "Our ranking: " + 10,
+          description: "Price: " + locations[i].price,
+          score: "Score " + locations[i].score,
+          coordinates: [locations[i].longitude, locations[i].latitude],
+        });
+      if (locations[i].address)
+        locationsData.push({
+          name: "Location" + i,
+          address: "Address" + i,
+          exits: "Exits" + i,
+          coordinates: [locations[i].longitude, locations[i].latitude],
+        });
     }
     console.log(JSON.stringify(locationsData));
     const ICON_MAPPING = {
@@ -213,6 +213,7 @@ const Map = (params) => {
     });
     console.log(JSON.stringify(iconLayer));
     deckLayers = [polyLayer, iconLayer];
+
     setMapState({
       viewstate: mapState.viewstate,
       layers: deckLayers,
