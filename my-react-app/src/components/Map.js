@@ -1,19 +1,18 @@
 import React, { useState } from "react";
 import { GOOGLE_ROADMAP, GoogleMap } from "@carto/react-basemaps";
 import { WebMercatorViewport } from "viewport-mercator-project";
-import { PolygonLayer } from "@deck.gl/layers";
+import { PolygonLayer, IconLayer } from "@deck.gl/layers";
 import Autocomplete from "./Autocomplete";
 import { Divide as Hamburger } from "hamburger-react";
 import Infocard from "./Infocard";
+import BouncingDotsLoader from "./BouncingLoader";
 
 const defaultLat = 37.7749;
 const defaultLong = -122.4194;
 const googleApiKey = "AIzaSyDDh5-81gvbR0DtxHa5Q8ss2-qnq34PGmg";
 
-const rawCoords =
-  "37.8079676628113 -122.44247674942 37.806658744812 -122.435846328735 37.8071093559265 -122.427778244019 37.8076028823853 -122.420418262482 37.8083109855652 -122.410826683044 37.80592918396 -122.404260635376 37.803955078125 -122.401685714722 37.8139543533325 -122.361130714417 37.8081178665161 -122.367224693298 37.7872395515442 -122.384626865387 37.7835702896118 -122.388296127319 37.7736568450928 -122.381880283356 37.7697730064392 -122.383511066437 37.7599239349365 -122.382202148438 37.7516198158264 -122.38050699234 37.7458047866821 -122.381730079651 37.7367496490479 -122.379434108734 37.7335953712463 -122.382287979126 37.7156352996826 -122.383575439453 37.7111506462097 -122.386450767517 37.6781058311462 -122.388253211975 37.6592659950256 -122.396900653839 37.6379156112671 -122.404561042786 37.63014793396 -122.434430122375 37.6320147514343 -122.436769008636 37.6430869102478 -122.45726108551 37.6264786720276 -122.488095760345 37.6753377914429 -122.490391731262 37.6960873603821 -122.494511604309 37.7078461647034 -122.498159408569 37.7217292785645 -122.501270771027 37.7302050590515 -122.506506443024 37.737865447998 -122.506463527679 37.7452898025513 -122.507450580597 37.7527141571045 -122.508437633514 37.7640223503113 -122.510454654694 37.7712750434875 -122.511162757874 37.7764248847961 -122.511677742004 37.7827119827271 -122.511312961578 37.7840852737427 -122.504403591156 37.7864027023315 -122.492172718048 37.7894282341003 -122.486035823822 37.7942776679993 -122.480413913727 37.8018522262573 -122.477130889893 37.8095126152039 -122.47740983963 37.9036688804626 -122.519595623016 37.9055786132813 -122.515454292297 37.8033328056335 -122.454042434692 37.8070449829102 -122.447519302368 37.8079676628113 -122.44247674942";
-
-  function formatData(inputString) {
+function formatData(inputString) {
+  inputString = inputString[0];
   const pairs = inputString.trim().split(/\s+/); // Assuming pairs are separated by whitespace
   const formattedData = [];
 
@@ -28,13 +27,6 @@ const rawCoords =
 
   return formattedData;
 }
-//const data = formatData(rawCoords);
-const example = [
-  {
-    contour: formatData(rawCoords), // Use the formatted coordinates
-    properties: {}, // You can add properties if needed
-  },
-];
 
 // options allows passing extra MapOptions (see: https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions)
 const basemap = {
@@ -50,45 +42,168 @@ const Map = (params) => {
     topLeftCorner: { longitude: 0, latitude: 0 },
     bottomRightCorner: { longitude: 0, latitude: 0 },
   });
-  const [showInfoCards, setShowInfoCards] = useState(false); // State to control Infocard visibility
+  const [showInfoCards, setShowInfoCards] = useState(false);
+  const [cardInfos, setCardInfos] = useState(null); // State to control Infocard visibility
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [sidebarOpen, setSideBarOpen] = useState(true);
-  const handleAnalyzeRegion = () => {
-    console.log("hello");
-    const layer = new PolygonLayer({
+  const [loading, setLoading] = useState(false);
+
+  const handleAnalyzeRegion = async () => {
+    if (!selectedLocation) return;
+    setLoading(true);
+    // grab the potential locations
+    const getLocationsUrl = "http://localhost:8000/get-locations";
+
+    //if selected location has spaces, replace with a %20
+    selectedLocation.replace(" ", "%20");
+    let locations = [];
+    // console.log(selectedLocation);
+    // console.log(mapState.topLeftCorner[1] + ", " + mapState.topLeftCorner[0]);
+    // console.log(
+    //   mapState.bottomRightCorner[1] + ", " + mapState.bottomRightCorner[0]
+    // );
+    try {
+      const requestOptions = {
+        method: "GET",
+      };
+      const response = await fetch(
+        `${getLocationsUrl}/${selectedLocation}/${mapState.topLeftCorner[1]}/${mapState.topLeftCorner[0]}/${mapState.bottomRightCorner[1]}/${mapState.bottomRightCorner[0]}`,
+        requestOptions
+      );
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      locations = await response.json();
+    } catch (error) {
+      console.error("Error:", error);
+    }
+
+    const apiUrl = "http://localhost:8000/generate-polygon";
+    let polygons = [];
+    for (var i = 0; i < locations.length; i++) {
+      if (
+        locations[i].latitude > mapState.topLeftCorner[1] ||
+        locations[i].latitude < mapState.bottomRightCorner[1] ||
+        locations[i].longitude > mapState.bottomRightCorner[0] ||
+        locations[i].longitude < mapState.topLeftCorner[0]
+      ) {
+        locations.splice(i, 1);
+        i--;
+        continue;
+      }
+      try {
+        console.log(i);
+        const response = await fetch(
+          `${apiUrl}/${locations[i].latitude}/${locations[i].longitude}/5`
+        );
+
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        const data = await response.json();
+        polygons.push({
+          contour: formatData(data),
+          properties: {},
+          name: "Region covered by location: " + i,
+          address: "some more info",
+        });
+        console.log(locations[i].latitude + ", " + locations[i].longitude);
+      } catch (error) {
+        locations.splice(i, 1);
+        i--;
+        console.error("Error:", error);
+      }
+    }
+
+    const polyLayer = new PolygonLayer({
       id: "polygon-layer",
-      data: example,
+      data: polygons,
       pickable: true,
       stroked: true,
       filled: true,
       wireframe: true,
       lineWidthMinPixels: 1,
       getPolygon: (d) => d.contour,
-      getFillColor: [0, 255, 0, 100],
+      getFillColor: [255, 0, 0, 100],
       getLineColor: [80, 80, 80],
       getLineWidth: 1,
     });
-    console.log(example);
+
+    const ICON_MAPPING = {
+      marker: { x: 0, y: 0, width: 128, height: 128, mask: true },
+    };
+
+    let newCardInfos = [];
+    let locationsData = [];
+    for (i = 0; i < locations.length; i++) {
+      if (
+        locations[i].latitude > mapState.topLeftCorner[1] ||
+        locations[i].latitude < mapState.bottomRightCorner[1] ||
+        locations[i].longitude > mapState.bottomRightCorner[0] ||
+        locations[i].longitude < mapState.topLeftCorner[0]
+      ) {
+        locations.splice(i, 1);
+        continue;
+      }
+      newCardInfos.push({
+        title: "location " + i,
+        address: "Address " + i,
+        neighborhood: "Neighborhood " + i,
+        description: "Description " + i,
+        score: "Score " + i,
+        coordinates: [locations[i].longitude, locations[i].latitude],
+      });
+      locationsData.push({
+        name: "location" + i,
+        address: "Address" + i,
+        exits: "Exits" + i,
+        coordinates: [locations[i].longitude, locations[i].latitude],
+      });
+    }
+    const iconLayer = new IconLayer({
+      id: "icon-layer",
+      data: locationsData,
+      pickable: true,
+      iconAtlas:
+        "https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/icon-atlas.png",
+      iconMapping: ICON_MAPPING,
+      getIcon: (d) => "marker",
+      sizeScale: 12,
+      getPosition: (d) => d.coordinates,
+      getSize: (d) => 5,
+      getColor: (d) => [0, 0, 0],
+    });
+    deckLayers = [polyLayer, iconLayer];
     setMapState({
       viewstate: mapState.viewstate,
-      layers: [layer],
+      layers: deckLayers,
       topLeftCorner: mapState.topLeftCorner,
       bottomRightCorner: mapState.bottomRightCorner,
     });
-    deckLayers = [layer];
+    setLoading(false);
+    setShowInfoCards(true);
+    setCardInfos(newCardInfos);
   };
+
   const handleViewSidebar = () => {
     setSideBarOpen(!sidebarOpen);
   };
 
   var sidebarClass = "sidebar rounded text-center";
+  if (showInfoCards) {
+    sidebarClass = "sidebar extended rounded text-center ";
+  }
   if (sidebarOpen) {
     sidebarClass = "sidebar open rounded text-center";
+    if (showInfoCards) {
+      sidebarClass = "sidebar open extended rounded text-center ";
+    }
   }
 
   const onResize = (updatedViewState) => {
-    console.log(deckLayers);
-
     const newLong = updatedViewState.viewState.longitude;
     const newLat = updatedViewState.viewState.latitude;
     const newZoom = updatedViewState.viewState.zoom;
@@ -112,13 +227,24 @@ const Map = (params) => {
     });
 
     let newTopLeft = viewport.unproject([0, 0]);
-    let newBottomRight = viewport.unproject([viewport.width, 0]);
+    let newBottomRight = viewport.unproject([viewport.width, viewport.height]);
     setMapState({
       viewstate: updatedViewState.viewState,
       layers: deckLayers,
       topLeftCorner: newTopLeft,
       bottomRightCorner: newBottomRight,
     });
+  };
+
+  const handleListClick = (placeInfo) => {
+    setMapState({
+      viewstate: {
+        longitude: placeInfo.coordinates[0],
+        latitude: placeInfo.coordinates[1],
+        zoom: 14,
+      },
+    });
+    //do something here
   };
 
   return (
@@ -129,28 +255,40 @@ const Map = (params) => {
         basemap={basemap}
         layers={mapState.layers}
         onViewStateChange={onResize}
+        getTooltip={({ object }) =>
+          object && {
+            html: `<h2>${object.name}<h2>\n${object.address}`,
+            style: {
+              width: "100px",
+              backgroundColor: "#fff",
+            },
+          }
+        }
       />
       {/* Sidebar stuff */}
       <div className={sidebarClass}>
-        <span className="text-center text-3xl mr-2 mt-5">HotSpots</span>
+        <span className="font-bold text-center text-3xl inline-block mt-3">
+          HotSpots
+        </span>
         <img
-          width="70px"
-          className="mx-auto inline"
+          width="80px"
+          className="pb-3 mx-auto inline"
           src="https://i.pinimg.com/736x/54/ad/00/54ad00fc993edefe14bf71c24b01bf2f.jpg"
         />
+
         <Autocomplete
           onSelect={(location) => {
             setSelectedLocation(location);
           }}
         />
-        <div onClick={handleViewSidebar} className="sidebar-toggle">
+        <div onClick={handleViewSidebar} className="sidebar-toggle bg-gray-100">
           <Hamburger rounded toggled={sidebarOpen} toggle={setSideBarOpen} />
         </div>
         <button
           onClick={handleAnalyzeRegion}
-          className="p-4 flex flex-col items-center"
+          className={"p-4 flex flex-col items-center w-full"}
         >
-          <p className>Analyze This Region</p>
+          <p className="font-semibold">analyze</p>
           <img
             width="10px"
             className="mx-auto"
@@ -158,15 +296,40 @@ const Map = (params) => {
             alt="Dropdown arrow"
           />
         </button>
-        {showInfoCards && selectedLocation && (
-          <Infocard
-            title={selectedLocation.title}
-            address={selectedLocation.address}
-            neighborhood={selectedLocation.neighborhood}
-            description={selectedLocation.description}
-            score={selectedLocation.score}
-          />
-        )}
+        {loading && <BouncingDotsLoader />}
+
+        {
+          <div className="mt-3 h-[70%] overflow-y-auto">
+            {showInfoCards && selectedLocation && cardInfos && (
+              <>
+                <h1 className="mx-auto text-xl w-[90%] bg-gray-100">
+                  Current Locations
+                </h1>
+                <ul>
+                  {cardInfos.map((placeInfo, index) => (
+                    <li
+                      className=""
+                      key={index}
+                      style={{
+                        opacity: showInfoCards ? 1 : 0,
+                        transition: "opacity 0.3s ease-in-out",
+                      }}
+                      onClick={() => handleListClick(placeInfo)}
+                    >
+                      <Infocard
+                        title={placeInfo.title}
+                        address={placeInfo.address}
+                        neighborhood={placeInfo.neighborhood}
+                        description={placeInfo.description}
+                        score={placeInfo.score}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        }
       </div>
     </>
   );
