@@ -6,6 +6,8 @@ const locationsRoute=require('./routes/getLocations');
 
 const suggestionsRoute=require('./routes/getSuggestions');
 
+const propertiesRoute = require('./routes/properties');
+
 
 app.get("/api", (req, res) => {
   res.json({
@@ -22,6 +24,9 @@ app.get("/", (req, res) => {
 app.use('/get-locations',locationsRoute);
 
 app.use('/get-suggestions',suggestionsRoute);
+
+
+app.use('/get-properties', propertiesRoute);
 
 
 function xmlToJson(xmlString) {
