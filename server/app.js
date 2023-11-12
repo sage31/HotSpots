@@ -119,6 +119,55 @@ app.get('/generate-polygon/:lat/:lon/:range/:existing', async (req, res) => {
   }
 });
 
+
+
+app.get('/number-on-street/:lat/:lon/:radius', async (req, res) => {
+  try {
+    const inrixUrl = "https://api.iq.inrix.com/blocks/v3";
+    const { lat, lon, radius } = req.params;
+
+    // Obtain the token using the getToken function
+    const token = await getToken();
+
+    const center = `${lat}|${lon}`;
+
+    const queryParams = {
+      point: center,
+      radius: radius
+    };
+
+    const queryString = new URLSearchParams(queryParams).toString();
+
+    const apiUrl = `${inrixUrl}?${queryString}`;
+    console.log(apiUrl);
+
+    // You can now use the apiUrl to make the request to the Inrix API
+    // Include the token in the Authorization header
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch data from Inrix API: ${response.status} ${response.statusText}`);
+    }
+
+    const jsonData = await response.text();  
+    const data = JSON.parse(jsonData);
+    console.log(data);
+    res.json({spaces: data.MeterCount});
+
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+
 async function getToken() {
   let appId = "v7udsaema2";
   let hashToken = "djd1ZHNhZW1hMnxoY0NDYTZrR2JJOE1vNVg0MW4xOThxb1o5ZWR6QjF5NllpaWRGNkww";
