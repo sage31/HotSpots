@@ -1,2 +1,1 @@
 # HotSpots
-fire
